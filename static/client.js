@@ -40,4 +40,4 @@ setInterval(() => {
         "forward" : isPressed(KEYS.forward),
         "reverse" : isPressed(KEYS.reverse)
     });
-}, 50);
+}, 100);
