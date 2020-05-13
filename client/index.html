@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang = "en">
+   <head>
+      <title>Patient Remote Monitoring</title>
+      <meta charset = "utf-8" />
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="stylesheet" href="css/spectre.min.css">
+      <script src="https://webrtc.github.io/adapter/adapter-latest.js" defer></script>
+      <script src="client.js" defer></script>
+   </head>
+
+   <body>
+      <header class="navbar">
+         <section class="navbar-section">
+            <h1 class="navbar-brand mr-2">CATCHY PROJ NAME-ACRONYM</h1>
+         </section>
+         <section class="navbar-center">
+            <!-- Centered icon of something -->
+         </section>
+         <section class="navbar-section">
+              <p>[Login/Out Button]</p>
+         </section>
+      </header>
+
+      <div id="root" class="container">
+         <div class="columns">
+            <div id="clients" class="column col-3" >
+            <!--style="visibility: collapse;"-->
+               "The driver & list of observers/clients/maintenence"
+            </div>
+
+            <main id="app" class="column col-6">
+               <!-- Disp-none after login -->
+               <img id="default_img" src="https://avatars3.githubusercontent.com/u/37602849?s=200&v=4" class="img-responsive" style="display: none;">
+               <!-- Undo disp-none after login -->
+               <div id="gui" class="container">
+                  <div class="btn-group btn-group-block">
+                     <button class="btn" id="btn_ctrl" title="Connect to robot and control driving. Disabled if already being driven.">Drive Robot</button>
+                     <button class="btn" id="btn_obsv" title="Warning: may slow cause network transmission issues for driver.">Observe Video</button>
+                     <button class="btn" id="btn_stop" title="Pauses, freezes, and stops the robot until resumed.">Pause</button>
+                     <button class="btn" id="btn_panic" title="Stops the robot, prevents driver from driving. Use only to disable robot or diable the driver.">Panic-EStop</button>
+                  </div>
+                  <video id="remoteview" autoplay class="video-responsive" width="1280" height="720" poster="https://avatars3.githubusercontent.com/u/37602849?s=200&v=4"></video>
+                  <div id="btn_cin" class="btn-group btn-group-block">
+                     <button class="btn" id="btn_cin_wasd" title="Use [w] to go forward, [s] to go backward, [a] to rotate left, [d] to rotate right, and [space] to slow down.">WASD Keys</button>
+                     <button class="btn" id="btn_cin_arrow" title="Use [UpArrow] to go forward, [DownArrow] to go backward, [LeftArrow] to rotate left, [RightArrow] to rotate right, and [space] or [0] (zero) to slow down.">Arrow Keys</button>
+                     <button class="btn" id="btn_cin_mouse" title="From the center of the video, move the mouse up to go forward, down to go backward, left to rotate left, right to rotate right, and [space] or [LeftClick and Hold] to slow down.">Mouse Direction</button>
+                     <button class="btn" id="btn_fullscreen" title="Make video fullscreen, hit [ESC] to exit. In fullscreen mode, the robot will stop more quickly if just [space] is held or if there is no input.">Fullscreen</button>
+                  </div>
+               </div>
+            </main>
+
+            <div class="column col-3">
+               "The chatbox for the group"
+            </div>
+         </div>
+      </div>
+
+      <footer class="navbar">
+         <section class="navbar-section">
+            <p>Service provided by University of Minnesota Robotics</p>
+            <!--img/logo-->
+         </section>
+         <section class="navbar-center">
+            <p>Chief contact: Goldy Gopher <a href="mailto:goldy@umn.edu">goldy@umn.edu</a></p>
+         </section>
+         <section class="navbar-section">
+            <p>Emergency contact: Goldy Gopher <a href="mailto:goldy@umn.edu">goldy@umn.edu</a> (<a href="tel:+1-abc-def-ghij">+1-abc-def-ghij</a>)</p>
+         </section>
+      </footer>
+   </body>
+</html>

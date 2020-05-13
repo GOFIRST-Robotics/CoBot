@@ -1,0 +1,34 @@
+Robot:
+let connection, req;
+const sig = Sig(sigParams);
+for(;;)
+if(!!connection){
+  if(connection.isStopped() || sig.kill_conn){
+    connected = None;
+    continue;
+  }
+  connection.send(stringify(getState()));
+}else{
+  // Recv connection
+  req = sig.pc_req;
+  if(!!req){
+    connection = ConfirmConnection(sig, req);
+    req = None;
+  }
+
+  // On first connection
+  if(!!connection){
+    connection.sendVideo(getVideo());
+    connection.onmessage(function msg ->
+      cmd = parseCmd(msg); // Named record/dict
+      // Handle estop from sig
+      if(!sig.estop){
+        moveRobot(stop);
+      }else{
+        moveRobot(cmd);
+      }
+    );
+  }
+}
+
+Client:
