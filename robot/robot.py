@@ -4,6 +4,8 @@ import time
 import json
 import asyncio
 
+from multiprocessing.connection import Client
+
 from sig_pusher import PusherSocket, init_pusher
 
 from aiortc import (
@@ -13,6 +15,8 @@ from aiortc import (
     VideoStreamTrack,
 )
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder
+
+address = ('localhost', 6000)
 
 async def run(pc, player, signaling):
     # Setup media
@@ -25,8 +29,9 @@ async def run(pc, player, signaling):
 
         datachannel = pc.createDataChannel("control")
         @datachannel.on("message")
-        def on_message(message):
-            print(message)
+        def on_message(message): # forward data to pwm handler thread
+            with Client(address, authkey=b'cobot') as conn:
+                conn.send(msg)
 
     # Wait for signal server connection
     await signaling.connect()
