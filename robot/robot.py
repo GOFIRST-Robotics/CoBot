@@ -1,52 +1,66 @@
 #!/usr/bin/python3
 
-import pysher
-import pusher
-import secrets
 import time
 import json
+import asyncio
 
-pusher_http = None
-is_connected = False
+from sig_pusher import PusherSocket, init_pusher
 
-def pusher_trigger(channels, event, message):
-    pusher_http.trigger(channels, event, message)
+from aiortc import (
+    RTCIceCandidate,
+    RTCPeerConnection,
+    RTCSessionDescription,
+    VideoStreamTrack,
+)
+from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder
 
-class PusherSocket:
-    def __init__(self, pusher_inst, channel_name):
-        self.pusher_inst = pusher_inst
-        self.channel_name = channel_name
-        self.channel = self.pusher_inst.subscribe(channel_name)
-        self.channel.bind('signal', lambda evt: self.rx_msg(evt))
-    
-    def send(self, message):
-        pusher_trigger([self.channel_name], 'signal', json.dumps({"source": "robot", "message": message}))
+async def run(pc, player, signaling):
+    # Setup media
+    def add_tracks():
+        if player and player.audio:
+            pc.addTrack(player.audio)
 
-    def rx_msg(self, evt):
-        data = json.loads(evt)
-        if data['source'] == 'robot':
-            print("Got message from robot, ignoring")
-        else:
-            return data['message']
+        if player and player.video:
+            pc.addTrack(player.video)
 
-def connect_handler(data):
-    global is_connected
-    is_connected = True
+        datachannel = pc.createDataChannel("control")
+        @datachannel.on("message")
+        def on_message(message):
+            print(message)
+
+    # Wait for signal server connection
+    await signaling.connect()
+
+    # consume signaling
+    while True:
+        obj = await signaling.receive()
+
+        if isinstance(obj, RTCSessionDescription):
+            await pc.setRemoteDescription(obj)
+            await recorder.start()
+
+            if obj.type == "offer":
+                # send answer
+                add_tracks()
+                await pc.setLocalDescription(await pc.createAnswer())
+                await signaling.send(pc.localDescription)
+        elif isinstance(obj, RTCIceCandidate):
+            await pc.addIceCandidate(obj)
+        elif obj is BYE:
+            print("Exiting")
+            break
 
 if __name__ == "__main__":
-    pusher_client = pysher.Pusher(key=secrets.key, secret=secrets.secret, cluster=u'us2')
-    pusher_http = pusher.Pusher(secrets.app_id, secrets.key, secrets.secret, cluster=u'us2')
+    pusher_client, pusher_http = init_pusher()
+
+    sigsocket = PusherSocket(pusher_client, 'common')
+    pc = RTCPeerConnection()
+
+    options = {"framerate": "30", "video_size": "640x480"}
+    player = MediaPlayer("/dev/video0", format="v4l2", options=options)
     
-    pusher_client.connection.bind('pusher:connection_established', connect_handler)
-    pusher_client.connect()
-
-    while not is_connected:
-        time.sleep(1)
-
-    print("Connected")
-
-    sigsocket = PusherSocket(pusher_client, 'connections')
-    while True:
-        sigsocket.send("test")
-        time.sleep(1)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(
+        run(pc=pc, player=None, signaling=sigsocket)
+    )
     
