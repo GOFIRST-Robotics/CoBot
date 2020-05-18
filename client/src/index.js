@@ -2,6 +2,12 @@
 // VERSION 0.01 : LAST_CHANGE 2020-05-14
 'use strict';
 
+// firebase stuff
+import * as firebase from "firebase/app";
+import "firebase/auth";
+import {firebaseConfig} from "../firebaseConfig";
+const firebaseApp = firebase.initializeApp(firebaseConfig);
+
 // This should be wrapped up in coms.js ... but then this would be empty
 import {Sig} from '../common/com_sig_pusher';
 import {RTCSimpleConnection} from '../common/com_rtc';

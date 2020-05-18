@@ -1,6 +1,7 @@
 // com_rtc.js
 // VERSION 0.01 : LAST_CHANGED 2020-05-06
 'use strict';
+import adapter from 'webrtc-adapter';
 
 // Returns normal pc
 // Inputs:

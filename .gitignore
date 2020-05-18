@@ -1,3 +1,9 @@
 __pycache__/*
 robot/my_secrets.py
 robot/__pycache__/*
+
+*~
+*.swp
+DS_FILE
+node_modules/
+

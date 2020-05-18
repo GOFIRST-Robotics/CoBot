@@ -1,8 +1,7 @@
 // com_sig_pusher.js
 // VERSION 0.01 : LAST_CHANGED 2020-04-14
 'use strict';
-// <script src="https://js.pusher.com/4.1/pusher.min.js"></script>
-import {Pusher} from './js/pusher.min';
+import Pusher from 'pusher-js/with-encryption';
 
 export class Sig {
   pusher = undefined;
