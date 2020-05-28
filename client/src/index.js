@@ -4,9 +4,10 @@
 
 // firebase stuff
 import * as firebase from "firebase/app";
-import "firebase/auth";
 import {firebaseConfig} from "../firebaseConfig";
 const firebaseApp = firebase.initializeApp(firebaseConfig);
+import {ui_init} from './fire_auth';
+const ui = ui_init(firebase);
 
 // This should be wrapped up in coms.js ... but then this would be empty
 import {Sig} from '../common/com_sig_pusher';
