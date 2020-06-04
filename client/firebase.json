@@ -17,6 +17,11 @@
     "predeploy": [
       "yarn workspace functions run lint",
       "yarn workspace functions run build"
-    ]
+    ],
+    "source": "functions"
+  },
+  "database": {
+    "predeploy": "yarn firebase database:set -y / gfb_rtdb.whitelist.json",
+    "rules": "gfb_rtdb.rules.json"
   }
 }

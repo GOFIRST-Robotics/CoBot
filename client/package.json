@@ -6,13 +6,10 @@
   "private": true,
   "scripts": {
     "build": "webpack -p --config webpack.config.js",
-    "build-dev": "webpack --config webpack.config.js",
+    "build-dev": "webpack -d --config webpack.config.js",
     "dev": "webpack-dev-server --hot --inline"
   },
   "workspaces": [
-    "src",
-    "common",
-    "robot_client",
     "functions"
   ],
   "devDependencies": {

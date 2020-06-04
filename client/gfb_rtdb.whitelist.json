@@ -1,0 +1,12 @@
+{
+  "whitelist_emails": {
+    "sauve031@umn%E2edu": "admin",
+    "schw1818@umn%E2edu": "admin",
+    "schat127@umn%E2edu": "admin",
+    "larkinskemp@me%E2com": "high",
+    "EAHedlund@healtheast%E2org": "user"
+  },
+  "whitelist_domains": {
+
+  }
+}

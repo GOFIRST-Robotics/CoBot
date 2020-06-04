@@ -6,12 +6,12 @@
 import * as firebase from "firebase/app";
 import {firebaseConfig} from "../firebaseConfig";
 const firebaseApp = firebase.initializeApp(firebaseConfig);
-import {ui_init} from './fire_auth';
+import {ui_init} from './gfb_auth';
 const ui = ui_init(firebase);
 
 // This should be wrapped up in coms.js ... but then this would be empty
-import {Sig} from '../common/com_sig_pusher';
-import {RTCSimpleConnection} from '../common/com_rtc';
+import {Sig} from 'common/com_sig_gfb_rtdb';
+import {RTCSimpleConnection} from 'common/com_rtc';
 // This is everything, with config options
 const video_el = document.getElementById('remoteview');
 function setup_com(){

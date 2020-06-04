@@ -1,0 +1,14 @@
+{
+  "rules": {
+    "whitelist_emails":{
+      ".read": false,
+      ".write": false
+    },
+    "whitelist_domains":{
+      ".read": false,
+      ".write": false
+    },
+    ".read": "auth != null && root.child('whitelist_emails').child(auth.token.email.replace('.', '%2E')).exists()",
+    ".write": "auth != null && root.child('whitelist_emails').child(auth.token.email.replace('.', '%2E')).exists()"
+  }
+}
