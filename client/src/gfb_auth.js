@@ -66,7 +66,7 @@ function onAuthChange(user){
 // https://firebase.google.com/docs/auth/web/firebaseui
 export async function ui_init(firebase){
   await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
-  firebase.auth().onAuthStateChange(this.onAuthChange, (err)=>{console.log(err);});
+  firebase.auth().onAuthStateChanged(onAuthChange, (err)=>{console.log(err);});
   const ui = new firebaseui.auth.AuthUI(firebase.auth());
   ui.start('#firebaseui-auth-container', ui_config);
   return ui;

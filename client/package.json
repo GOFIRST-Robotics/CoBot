@@ -7,9 +7,11 @@
   "scripts": {
     "build": "webpack -p --config webpack.config.js",
     "build-dev": "webpack -d --config webpack.config.js",
-    "dev": "webpack-dev-server --hot --inline"
+    "dev-recompile": "webpack -d --watch --inline",
+    "dev-localhost": "firebase serve --only hosting"
   },
   "workspaces": [
+    "src",
     "functions"
   ],
   "devDependencies": {
@@ -26,7 +28,6 @@
     "firebase": "^7.14.4",
     "firebase-admin": "^8.12.1",
     "firebase-functions": "^3.6.1",
-    "firebaseui": "^4.5.0",
     "webrtc-adapter": "^7.6.0"
   }
 }

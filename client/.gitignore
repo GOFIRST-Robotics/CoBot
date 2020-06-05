@@ -1,3 +1,7 @@
+# Custom!
+# Because it's autogen, & automatically so
+dist/main.js
+
 # Logs
 logs
 *.log

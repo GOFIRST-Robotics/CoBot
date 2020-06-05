@@ -20,7 +20,7 @@
          </section>
          <section class="navbar-section">
               <!--p>[Login/Out Button]</p-->
-              <div id="#firebaseui-auth-container"></div>
+              <div id="firebaseui-auth-container"></div>
          </section>
       </header>
 
@@ -29,15 +29,17 @@
             <div id="clients" class="column col-3" >
             <!--style="visibility: collapse;"-->
             </div>
-
             <main id="app" class="column col-6">
                <!-- Disp-none after login -->
                <!--img id="default_img" src="https://avatars3.githubusercontent.com/u/37602849?s=200&v=4" class="img-responsive" style="display: none;"-->
+               <div>
+                  <p id="sign-in"></p>
+                  <p id="sign-in-status"></p>
+                  <p id="account-details"></p>
+               </div>
                <!-- Undo disp-none after login -->
                   <video id="remoteview" autoplay class="video-responsive" width="1280" height="720" poster="https://avatars3.githubusercontent.com/u/37602849?s=200&v=4"></video>
-               </div>
             </main>
-
             <div class="column col-3">
             </div>
          </div>

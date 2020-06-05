@@ -23,9 +23,25 @@
   * To run: `yarn run build` (see the 'scripts' in package.json)
   * To real-time run webpack, hotfix changes, use `yarn run dev` to see the site at `http://localhost:8080`
   * This is the test that the code is minimumly working, if it doesn't fail to compile
+  * See Dev-Debug-FeebackLoop
 4. Firebase is used to host the site
   * Yarn should install the cli as a dev tool and the sdk as a dependency
-  * You can run commands with `yarn run firebase ARGS`
+  * The hosted site is in `dist/`; this is where assets & raw html goes (warning, don't open main.js!)
+  * You can run commands with `yarn firebase ARGS`
   * To use, `import` into the js the needed modules
   * The required config obj comes from [online console]/Project Settings/Your apps/CARRI/Config, grab newer version if added firebase functionality.
-  * Most key function - deploy: `yarn run firebase deploy -m "[PROJ VER in package.json]"`
+  * Most key function - deploy: `yarn firebase deploy -m "[PROJ VER in package.json]"`
+5. Dev-Debug-FeedbackLoop
+  * This is how you should make changes & test, locally, on own computer.
+  * Make sure you've updated the local pkgs by running `yarn install` in the correct dir(s) (see package.json workspaces)
+  * See the cmd line 'scripts' in package.json
+  1. Terminal 1 (cd CoBot/client): `yarn dev-recompile`
+    * Anytime a file identified as a dependency via package.json changes, it recompiles the `dist/main.js`.
+  2. Terminal 2 (cd CoBot/client): `yarn dev-localhost`
+    * This has firebase locally host the website at `http://localhost:5000`
+    * It will use the files in `dist/`, but it won't update unless you REFRESH
+  3. Have your console/inspector/debugger open (Ctrl-Shift-I in FF), usually under webdev tools.
+    * In the debugger tab, make sure to Pause on Exceptions.
+    * Watch in console for errors that get thrown.
+  4. Allowed/expected warnings:
+    * onaddstreams depreciated, use addtrack instead; it's ok (JWCS)
