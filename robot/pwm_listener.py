@@ -14,7 +14,7 @@ max_pulse = 2500
 offset = 125
 oscillator_freq = 25000000
 pwm_thread_started = False
-address = "/tmp/ipccarri"
+address = "/tmp/ipc_carri"
 
 class PWMDispatchHandler(socketserver.StreamRequestHandler):
     def handle(self):

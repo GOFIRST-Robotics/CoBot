@@ -1,12 +1,28 @@
-const net = require('net');
+// ipc_handler.js
+// VERSION 0.20 : LAST_CHANGED 2020-06-06
 
-/**
- * Send a message to the robot control thread over IPC
- * @param {*} message JSON representation of the message to send
- */
-function sendIPC(message) {
-    var ipcSocket = net.createConnection("/tmp/ipccarri");
-    ipcSocket.write(message.stringify());
-    ipcSocket.destroy();
+import net from 'net';
+
+export class IPC {
+  // External
+  onmessage = undefined; // To be defined
+  ready = false;
+  // Internal
+  socket = undefined;
+  _send = undefined;
+
+  constructor(sys_path){
+    this.socket = net.createConnection(sys_path);
+    this.socket.on('ready', () => {
+      this._send = (str) => this.socket.write(str);
+      this.ready = true;
+    });
+    this.socket.on('data', (data) => {
+      this.onmessage && this.onmessage(data);
+    });
+  }
+
+  send(str){
+    this._send && this._send(str);
+  }
 }
-
