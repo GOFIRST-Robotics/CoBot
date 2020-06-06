@@ -4,7 +4,8 @@ import threading
 import queue
 import time
 import Adafruit_PCA9685
-from multiprocessing.connection import Listener
+import socketserver
+import json
 
 pwm_dispatch_queue = queue.Queue()
 pwm = Adafruit_PCA9685.PCA9685(address=0x40, busnum=1)
@@ -13,9 +14,13 @@ max_pulse = 2500
 offset = 125
 oscillator_freq = 25000000
 pwm_thread_started = False
-address = ('localhost', 6000)
+address = "/tmp/ipccarri"
 
-# PWM dispatch thread
+class PWMDispatchHandler(socketserver.StreamRequestHandler):
+    def handle(self):
+        data = self.request.recv(1024)
+        pwm_dispatch_queue.put_nowait(json.loads(data.decode('U8')))
+
 def handle_pwm(my_queue):
     print("Starting PWM Dispatch")
     pwm.set_pwm_freq(50)
@@ -53,7 +58,5 @@ def set_servo_us(channel, us):
 if __name__ == '__main__':
     pwm_dispatch_thread = threading.Thread(target=handle_pwm, args=(pwm_dispatch_queue,))
     pwm_dispatch_thread.start()
-    with Listener(address, authkey=b'cobot') as listener:
-        while True:
-            with listener.accept() as conn:
-                pwm_dispatch_queue.put_nowait(conn.recv())
+    with socketserver.UnixStreamServer(address, PWMDispatchHandler) as server:
+        server.serve_forever()
