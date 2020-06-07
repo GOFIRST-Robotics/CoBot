@@ -18,8 +18,17 @@ address = "/tmp/ipc_carri"
 
 class PWMDispatchHandler(socketserver.StreamRequestHandler):
     def handle(self):
-        data = self.request.recv(1024)
-        pwm_dispatch_queue.put_nowait(json.loads(data.decode('U8')))
+        data = ""
+        while True:
+            datum = self.request.recv(1).decode('U8')
+            if datum == '':
+                break # Socket disconnected
+            else:
+                if datum == '\r':
+                    pwm_dispatch_queue.put_nowait(json.loads(data))
+                    data = ""
+                else:
+                    data += datum
 
 def handle_pwm(my_queue):
     print("Starting PWM Dispatch")

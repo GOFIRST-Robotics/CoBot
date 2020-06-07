@@ -23,6 +23,6 @@ export class IPC {
   }
 
   send(str){
-    this._send && this._send(str);
+    this._send && this._send(str + "\r");
   }
 }
