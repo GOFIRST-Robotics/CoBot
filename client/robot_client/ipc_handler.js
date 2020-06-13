@@ -14,7 +14,7 @@ export class IPC {
   constructor(sys_path){
     this.socket = net.createConnection(sys_path);
     this.socket.on('ready', () => {
-      this._send = (str) => this.socket.write(str);
+      this._send = this.socket.write;
       this.ready = true;
     });
     this.socket.on('data', (data) => {

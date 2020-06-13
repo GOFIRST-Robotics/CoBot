@@ -6,7 +6,7 @@ import adapter from 'webrtc-adapter';
 // Returns normal pc
 // Inputs:
 // config: RTCPeerConnection(config)
-// socket: sig server impl .send(string), .onmessage(evt)
+// socket: sig server impl .send(string), .onmessage(evt) (opt: close())
 // Has additional methods:
 // .connect() -> void; Creates connection
 // .send(chat_msg : string)
@@ -14,11 +14,22 @@ import adapter from 'webrtc-adapter';
 // .onopen(evt)
 // .onerror(err)
 // .onmessage(chat_msg : string)
+class RTCSimpleConnectionClass extends RTCPeerConnection {
+  constructor(...args){
+    // @ts-ignore
+    super(args);
+    this.onopen = undefined;
+    this.onerror = undefined;
+    this.onmessage = undefined;
+    // Def below
+    this.connect = undefined;
+    this.send = undefined;
+  }
+}
 
 // EX: pc = RTCSimpleConnection(PeerConn_Config, new SigServConn())
 export function RTCSimpleConnection(config, socket) {
-  let sc = socket, dc, cc, pc = new RTCPeerConnection(config);
-  // @ts-ignore
+  let sc = socket, dc, cc, pc = new RTCSimpleConnectionClass(config);
   let fail = e => pc.onerror && pc.onerror(e);
   let once = name => new Promise(r => pc.addEventListener(name, r));
   let set = sdp => pc.setLocalDescription(sdp).then(() => sc.send(JSON.stringify({sdp})));
@@ -30,13 +41,11 @@ export function RTCSimpleConnection(config, socket) {
 
   sc.onmessage = e => incoming(JSON.parse(e.data));
   let init = () => {
-    // @ts-ignore
     dc.onopen = e => {
+      sc.close && sc.close();
       (sc = dc).onmessage = e => incoming(JSON.parse(e.data));
-      // @ts-ignore
       pc.addEventListener("negotiationneeded", e => pc.createOffer().then(set).catch(fail));
     };
-    // @ts-ignore
     cc.onopen = e => (cc.onmessage = e => pc.onmessage && pc.onmessage(e)) && pc.onopen && pc.onopen(e);
   };
   let co = pc.createOffer.bind(pc);
@@ -44,9 +53,7 @@ export function RTCSimpleConnection(config, socket) {
   pc.createOffer = o => (dc || !init([dc, cc] = ["signaling", "chat"].map(n => pc.createDataChannel(n)))) && co(o);
   once("datachannel").then(e => (dc = e.channel) && once("datachannel").then(e => cc = e.channel)).then(init);
   pc.addEventListener("icecandidate", e => sc.send(JSON.stringify({ice: e.candidate})));
-  // @ts-ignore
   pc.connect = () => pc.createOffer().then(set).catch(fail);
-  // @ts-ignore
   pc.send = msg => cc && cc.send(msg);
   return pc;
 }
