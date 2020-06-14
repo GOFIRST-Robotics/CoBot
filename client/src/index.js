@@ -11,13 +11,14 @@ import {firebaseConfig} from "../firebaseConfig";
 const firebaseApp = firebase.initializeApp(firebaseConfig);
 import {ui_init} from './gfb_auth';
 const ui = ui_init(firebase);
-
+//const uid = firebase.auth().currentUser.uid; // Idk if this is ready
+// Should I have to wait somewhere for auth to finish? Or put the following in a cb for auth?
 
 // This should be wrapped up in coms.js ... but then this would be empty
 import {Sig} from '../common/com_sig_gfb_rtdb';
 import {RTCSimpleConnection} from '../common/com_rtc';
 const gfb_db = firebase.database();
-const sig = new Sig(gfb_db, "rtc");
+const sig = new Sig((new Date()).getTime().toString(), gfb_db, "rtc"); // Uncert about uid
 // This is everything, with config options
 const video_el = document.getElementById('remoteview');
 
@@ -27,11 +28,11 @@ async function setup_com(){
     offerToReceiveVideo: true
   }
   await sig.find_priv_subchannel();
-  const pc = RTCSimpleConnection(offerOpts, sig);
+  const pc = new RTCSimpleConnection(offerOpts, sig);
   pc.onopen = evt => {
     // Have sending cmds go here
   };
-  pc.onaddstream = evt => {
+  pc.onaddstream = evt => { // This method doesn't seem exposed by the RTCPeerConnection; should still work
     video_el.srcObject = evt.stream;
   };
   //pc.ontrack = evt => {};

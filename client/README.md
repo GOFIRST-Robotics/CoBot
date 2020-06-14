@@ -31,6 +31,8 @@
   * To use, `import` into the js the needed modules
   * The required config obj comes from [online console]/Project Settings/Your apps/CARRI/Config, grab newer version if added firebase functionality.
   * Most key function - deploy: `yarn firebase deploy -m "[PROJ VER in package.json]"`
+  * Real-Time Database: see gfb_rtdb* files, deployed with `yarn firebase deploy --only database`
+  * > Note, no periods in json files, so on the whitelist, replace `.` with `%E2`
 5. Dev-Debug-FeedbackLoop
   * This is how you should make changes & test, locally, on own computer.
   * Make sure you've updated the local pkgs by running `yarn install` in the correct dir(s) (see package.json workspaces)

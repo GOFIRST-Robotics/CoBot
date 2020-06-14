@@ -12,11 +12,14 @@
 //  is connected. Ergo it can either be passed as a parameter, or set
 //  after via await/then.
 export class Sig {
-  constructor(db, channel_name="common"){
+  constructor(uid, db, channel_name="common"){
+    this.uid = uid;
     this.db = db;
     this.channel_name = channel_name;
-    this.ref = this.db.ref(channel_name);
-    this.priv_ch = {state: "init"}; // kill?
+    this.ref = this.db.ref(this.channel_name);
+    this.priv = false;
+    this.closed = false; // Set when est. connection
+    this.onmessage = undefined;
     // This is for triggering onmessage immediately, when set, in case the
     // values were already there lingering, w/o being updated
     return new Proxy(this, {
@@ -39,14 +42,56 @@ export class Sig {
   // Then, 'channel'+'_data'/{'$push_val'} subchannels, known by both
   //  parties, are open for 1-1 communication. This case is improved by
   //  moving to webrtc datachannels, which this was intended for.
+  // TODO: timeouts, closing, onDisconnect... aka dealing w errors
   async find_priv_subchannel(){
     const data_ch_suffix = "_data__com_sig_gfb_rtdb__";
     const waiting = "__waiting__com_sig_gfb_rtdb__";
+    this.closed = true;
     return new Promise((res, rej) => {
-      // This may abort in the middle, no can't make self-changes until
-      // completion cb verifies it worked
       let data_ref = undefined;
       let child_key = undefined;
+      function complete(){
+        this.priv = true;
+        this.closed = false;
+        this._change_ref(data_ref);
+        this.send(""); // Set it to existance with an empty string
+        // I should set a cb on 'child_removed' evt, if priv, that re-runs
+        // close && find_priv_subchannel; this is my attempt
+        this.ref.once('child_removed', (old_snapshot) => {
+          this.close();
+          this.find_priv_subchannel();
+        });
+      }
+      function oncompletion(err, bSuccess, snapshot){ // If ok, change ref & be ready
+        if(bSuccess){
+          if(data_ref != null){ // Found waiter
+            // Update this with the ref, assume the other will be ready
+            complete();
+            res(); // Done! call the code after/awaiting
+          }else{ // I'm the waiter, waiting
+            // TODO Think about onDisconnect, on close
+            let self_ref = this.ref.child(child_key);
+            self_ref.on('value', (snapshot) => {
+              if(snapshot.val() != waiting){
+                data_ref = this.db.ref(this.channel_name + data_ch_suffix).child(self_ref.val());
+                // if(){ Check if data_ref is valid/exists; poss timing issue w above
+                complete();
+                self_ref.off(); // Removes all callbacks on this!
+                self_ref.set(null); // & just delete the data, used up!
+                res(); // Done! call the code after/awaiting
+                //}
+              }
+            });
+          }
+        }else if(err != null){
+          rej(err);
+        }else{
+          console.log("Error?");
+          throw Error;
+        }
+      }
+      // This may abort in the middle, can't make this-changes until
+      // completion cb verifies it worked
       this.ref.transaction((channel_val) => {
         // If there's someone waiting, connect to them
         if(channel_val != null){
@@ -65,42 +110,57 @@ export class Sig {
         child_key = self_ref.key; // Logic of 2 states
         channel_val[child_key] = waiting;
         return channel_val;
-      }, (err, bSuccess, snapshot) => { // If ok, change ref & be ready
-        // On completion!
-        if(bSuccess){
-          if(data_ref != null){ // Found waiter
-            // Update this with the ref, mark ready
-          }else{ // Waiting
-            // Think about onDisconnect, on close
-            let self_ref = this.ref.child(child_key);
-            self_ref.on('value', (snapshot) => {
-              if(snapshot.val() != waiting){
-                data_ref = this.db.ref(this.channel_name + data_ch_suffix).child(self_ref.val());
-                self_ref.off(); // Removes all callbacks on this!
-                self_ref.set(null); // & just delete the data, used up!
-              }
-            });
-          }
-        }else if(err != null){
-          rej(err);
-        }
-      }, true);
-    }
-
+      }, oncompletion, true);
+    });
   }
 
-  _register_onmessage(cb){
-    // Need set to watch / run on set, an init for it, to call cb
-    // right away on the data
+  _change_ref(ref){
+    if(this.onmessage){
+      this.ref.off();
+      this.ref = ref;
+      this.ref.on('child_added', this._onmessage_cb);
+    }else{
+      this.ref = ref;
+    }
+  }
+
+  _onmessage_cb(snapshot, prevKey = null){
+    if(this.onmessage && !this.closed){
+      const val = snapshot.val();
+      val != null
+      && val.uid != null && val.uid != this.uid
+      && val.data != null && val.data != ""
+      && this.onmessage(val.data);
+    }
+  }
+
+  _register_onmessage(onmessage){
+    if(this.priv){ // priv ch made before onmessage set
+      this.ref.on('child_added', this._onmessage_cb);
+    }
   }
 
   // The string
   send(data, evtName="common"){
-    return "Not Impl Yet"; //this.channel.trigger(evtName, JSON.parse(data));
+    // evtName, not impl/used? Like a topic? Only matters if try to sync api w/ other sigs
+    let sent = false;
+    if(!this.closed){
+      this.ref.push({uid: this.uid, data: data},
+        (err) => { sent = (err === null); });
+    }
+    return sent;
   }
 
   // To close
-  close(){
-
+  // Alt, to use the main channel again, just set this.closed = true
+  close(){ // Resets & turns off all subs
+    //this.onmessage = undefined;
+    this.closed = true;
+    this.ref.off();
+    if(this.priv){
+      this.ref.set(null); // Delete priv subch
+      this.ref = this.db.ref(this.channel_name);
+    }
+    this.priv = false;
   }
 }
