@@ -1,0 +1,326 @@
+http://192.168.0.205/snapshot.jpg gets the current picture
+
+function() {
+  var mode = $(this).val();
+
+  $.post(getBaseUrl() + 'home/setviewmode/' + mode)
+    .done(function(data) {
+      // /console.log("Current viewmode " + data);
+    });
+}
+mode can be IR, VISUAL, or FUSION
+
+function moveSpot(id, x, y) {
+    var sensorX = scaleToSensor(x, 'x');
+    var sensorY = scaleToSensor(y, 'y');
+    setResource('.image.sysimg.measureFuncs.spot.' + id + '.x ', sensorX);
+    setResource('.image.sysimg.measureFuncs.spot.' + id + '.y ', sensorY);
+}
+
+
+function initMeasure(type, id, measureData, alreadyActive) {
+    // console.log(measureData);
+    if (type == 'spot') {
+        if (!alreadyActive) {
+            subscribeToSpot(id, function () {
+                setTimeout(function () { // TODO: Remove sleep after usleep in subscriptions.php can be removed
+                    setResource('.image.sysimg.measureFuncs.spot.' + id + '.active', 'true', null, true);
+                }, 750);
+            });
+        }
+        measureData.label = id;      // Patch label to get unicode text
+        createSpot(id, measureData);
+        addSpotRow(id, measureData);
+
+function subscribeToSpot(id, callback) {
+    $.post(getBaseUrl() + 'home/subscribe/spot/' + id)
+        .done(function () {
+            console.log('Subscribed to spot ', id);
+            if (callback !== undefined) {
+                callback();
+            }
+        });
+}
+
+function unsubscribeToSpot(id) {
+    $.post(getBaseUrl() + 'home/unsubscribe/spot/' + id)
+        .done(function () {
+            console.log('Unsubscribed to spot', id);
+        });
+}
+
+function setResource(resource, value, callback, requestReset) {
+    return poll({
+        action: 'set',
+        resource: resource,
+        value: value,
+    }, callback, requestReset);
+}
+
+function poll(data, callback, requestReset) {
+    return $.ajax({
+        type: 'POST',
+        url: getBaseUrl() + 'res.php',
+        data: data,
+        dataType: 'json',
+        success: function (result, status, xhr) {
+            if (callback != undefined) {
+                callback(result);
+            }
+        },
+        error: function (result, status, xhr) {
+            // console.log(result);
+        },
+        complete: function () {
+            if (requestReset != undefined) {
+                requestRunning = false;
+                // console.log("Ajax complete: requestRunning=" + requestRunning);
+            }
+        }
+    });
+}
+
+function initWebSocket() {
+    // create a new WebSocket object.
+    var wsUri = getWebSocketUri();
+    websocket = new WebSocket(wsUri);
+    websocket.onopen = function (ev) { // connection is open
+        console.log('Connected to WebSocket server');
+    };
+
+    websocket.onmessage = function (ev) {
+        var msg = JSON.parse(ev.data); // PHP sends Json data
+        // console.log(msg);
+
+        $.each(msg, function (k, v) {
+            if (k === 'notify') {
+                handleClientNotifications(v[0], 'index');
+            } else {
+                var res = k.slice(1).split('.');
+                if (res[2] === 'measureFuncs') {
+                    switch (res[5]) {
+                    case 'x':
+                        if(res[3] === 'spot') {
+                            $('#spot-' + res[4]).css('left', scaleToScreen(v, 'x') - spotOffset + gridAlignment);
+                        } else {
+                            var width = $('#' + res[3] + '-' + res[4]).css('width');
+                            width = width.replace('px', '');
+                            $('#' + res[3] + '-' + res[4]).css('left', scaleToScreen(v, 'x', width / globScaling));
+                        }
+                        break;
+                    case 'y':
+                        if(res[3] === 'spot') {
+                            $('#spot-' + res[4]).css('top', scaleToScreen(v, 'y') - spotOffset + gridAlignment);
+                        } else {
+                            var height = $('#' + res[3] + '-' + res[4]).css('height');
+                            height = height.replace('px', '');
+                            $('#' + res[3] + '-' + res[4]).css('top', scaleToScreen(v, 'y', height / globScalingHeight));
+                        }
+                        break;
+                    case 'valueT':
+                        updateMeasurementValue($('#' + res[3] + '-bar-' + res[4] + ' .measurement-value'), v, res[3] == 'diff' ? true : false);
+                        break;
+                    case 'valueValid':
+                        updateMeasurementValueValidity($('#' + res[3] + '-bar-' + res[4] + ' .measurement-value'), v);
+                        break;
+                    case 'width':
+                        $('#' + res[3] + '-' + res[4]).css('width', scaleToScreen(v, 'width'));
+                        break;
+                    case 'height':
+                        $('#' + res[3] + '-' + res[4]).css('height', scaleToScreen(v, 'height'));
+                        break;
+                    case 'maxX':
+                        $('#' + res[3] + '-max-' + res[4]).css('left', scaleToScreen(v, 'x') - spotOffset + gridAlignment);
+                        break;
+                    case 'maxY':
+                        $('#' + res[3] + '-max-' + res[4]).css('top', scaleToScreen(v, 'y') - spotOffset + gridAlignment);
+                        break;
+                    case 'minX':
+                        $('#' + res[3] + '-min-' + res[4]).css('left', scaleToScreen(v, 'x') - spotOffset + gridAlignment);
+                        break;
+                    case 'minY':
+                        $('#' + res[3] + '-min-' + res[4]).css('top', scaleToScreen(v, 'y') - spotOffset + gridAlignment);
+                        break;
+                    case 'avgT':
+                        updateMeasurementValue($('#' + res[3] + '-bar-' + res[4] + ' .temp-average'), v, false);
+                        break;
+                    case 'maxT':
+                        updateMeasurementValue($('#' + res[3] + '-bar-' + res[4] + ' .temp-max'), v, false);
+                        break;
+                    case 'minT':
+                        updateMeasurementValue($('#' + res[3] + '-bar-' + res[4] + ' .temp-min'), v, false);
+                        break;
+                    case 'avgValid':
+                        updateMeasurementValueValidity($('#' + res[3] + '-bar-' + res[4] + ' .temp-average'), v);
+                        break;
+                    case 'maxValid':
+                        updateMeasurementValueValidity($('#' + res[3] + '-bar-' + res[4] + ' .temp-max'), v);
+                        break;
+                    case 'minValid':
+                        updateMeasurementValueValidity($('#' + res[3] + '-bar-' + res[4] + ' .temp-min'), v);
+                        break;
+                    case 'calcMask':
+                        updateMeasurementCalcMask(res[3], res[4], v);
+                        break;
+                    case 'isoCoverage':
+                        updateIsoCoverageValue($('#' + res[3] + '-bar-' + res[4] + ' .temp-iso'), v);
+                        break;
+                    case 'isoValid':
+                        updateMeasurementValueValidity($('#' + res[3] + '-bar-' + res[4] + ' .temp-iso'), v);
+                        break;
+                    case 'highT':
+                        isothermHighT = v;
+                        updateIsotherm();
+                        if (isotherm === 'interval' || isotherm === 'below') {
+                            $('#iso-value-high').val(kelvinToCurrentTemperatureUnit(v, false));
+                        } else if (isotherm === 'above') {
+                            $('#iso-value-low').val(kelvinToCurrentTemperatureUnit(v, false));
+                        }
+                        break;
+                    case 'lowT':
+                        isothermLowT = v;
+                        updateIsotherm();
+                        if (isotherm === 'interval') {
+                            $('#iso-value-low').val(kelvinToCurrentTemperatureUnit(v, false));
+                        }
+                        break;
+                    case 'type':
+                        isotherm = v;
+                        updateIsotherm();
+                        break;
+                    case 'active':
+                        var mfunc = $('#' + res[3] + '-' + res[4]);
+                        var id = mfunc.prop('id');
+                        if (v == 'true') {
+                            if (typeof mfunc === 'undefined' || typeof id === 'undefined') { // mfunc does not exist, it must have be created externally. synch up.
+                                synchActiveMeasures(res[3], res[4]);
+                            }
+                        } else {
+                            if (typeof id !== 'undefined') { // mfunc does exist, it must have be deleted externally. synch up.
+                                if (res[3] === 'spot') {
+                                    removeSpot(res[4], false);
+                                } else if (res[3] === 'mbox') {
+                                    removeBox(res[4], false);
+                                } else if (res[3] === 'diff') {
+                                    removeDelta(res[4], false);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                } else if(res[0] == 'resmon' && res[1] == 'items') {
+                    switch (res[3]) {
+                    case 'trigged':
+                        var alarmId = res[2];
+                        if (v === 'true') {
+                            var butt = $('.sidebar-content.measurements').find(".button[data-measfunc-alarm='" + alarmId + "']");
+                            if (butt !== undefined && butt.hasClass('button-activated'))
+                                butt.addClass('button-alarm-trigged');
+                        } else {
+                            $('.sidebar-content.measurements').find(".button[data-measfunc-alarm='" + alarmId + "']").removeClass('button-alarm-trigged');
+                        }
+                        setTimeout(function () {
+                            updateLog();    // Need to wait until file is written
+                        }, 2000);
+                        break;
+                    }
+                } else if (k.lastIndexOf('.image.sysimg.alarms.measfunc', 0) === 0) {
+                    var alarm = k.split('.')[5];
+                    getAlarm(alarm, function (data) {
+                        synchAlarm(data.measFuncType, data.measFuncId, v === 'true' ? false : true);
+                    });
+                } else if (k === '.image.sysimg.basicImgData.extraInfo.highT') {
+                    var old = $('.temp-global-max').data('value');
+                    if (Math.abs(old - v) > 0.1) {
+                        $('.temp-global-max').data('value', v);
+                        $('.temp-global-max').val(kelvinToCurrentTemperatureUnit(v, false));
+                        if (isotherm != '')
+                            updateIsotherm();
+                    }
+                } else if (k === '.image.sysimg.basicImgData.extraInfo.lowT') {
+                    var old = $('.temp-global-min').data('value');
+                    if (Math.abs(old - v) > 0.1) {
+                        $('.temp-global-min').data('value', v);
+                        $('.temp-global-min').val(kelvinToCurrentTemperatureUnit(v, false));
+                        if (isotherm != '')
+                            updateIsotherm();
+                    }
+                } else if (k === '.image.sysimg.basicImgData.objectParams') {
+                    updateGlobalParameters();
+                } else if (k === '.image.services.store.stage.start') {
+                    showNotification('Saving...');
+                } else if (k === '.image.services.store.stage.end') {
+                    getResource('.image.services.store.filename', function (result) {
+                        var file = result.replace(/^.*(\\|\/|\:)/, '');
+                        showNotification(file + ' saved');
+                        webSocketSend('refresh', 'storage');
+                    });
+                } else if (k === '.image.services.store.status') {
+                    if (v !== 0 && v !== 0x64090002) {  // show all errors except done and unfinished
+                        showNotification('Save error: ' + v);
+                    }
+                } else if (k === '.image.services.profile.status') {
+                    if (parseInt(v, 10) === 0x64090002) {
+                        showNotification('Applying preset...');
+                        setTimeout(function () {
+                            window.location.reload();
+                        }, 5000);
+                    } else if (v != 0) {
+                        showNotification('Failed to apply preset');
+                    }
+                } else if (k === '.image.state.freeze.stage.end') {
+                    if (calibrating == false) {
+                        $('#button-pause').hide();
+                        $('#button-play').show();
+                    }
+                } else if (k === '.image.state.live.stage.end') {
+                    if (calibrating == false) {
+                        $('#button-pause').show();
+                        $('#button-play').hide();
+                    }
+                } else if (k === '.image.services.nuc.stage.start') {
+                    calibrating = true;
+                    showNotification('Calibrating...', 'calibrate');
+                } else if(k === '.image.services.nuc.stage.end') {
+                    calibrating = false;
+                    hideNotification('calibrate');
+                } else if (k === '.image.contadj.adjMode') {
+                    adjMode = v;
+                    updateScaleMode();
+                } else if (k === '.image.contadj.lockMode') {
+                    lockMode = v;
+                    updateScaleMode();
+                } else if (k === '.tcomp.services.autoNuc.onlyInitial') {
+                    updatePeriodicNuc();
+                } else if (k === '.tcomp.services.autoNuc.maxInterval') {
+                    updatePeriodicNuc();
+                } else if (k === '.image.sysimg.fusion.fusionData.fusionMode' ||
+                         k === '.image.sysimg.fusion.fusionData.useLevelSpan') {
+                    updateViewMode();
+                } else if (k === '.image.fusion.userDistance') {
+                    updateFusionDistance(parseFloat(v));
+                } else if (k === '.system.vcam.torch') {
+                    updateLamp();
+                } else if (k === '.rtp.vflip' || k === '.rtp.hflip') {
+                    window.location.reload();   // We will only get this message if caused by other client
+                } else if (k === '.image.sysimg.palette.readFile') {
+                    updatePalette();
+                } else if (k === '.power.states.digin1') {
+                    if (v === 'false') {
+                        $('.digital-io-value').html('0');
+                    } else if (v === 'true') {
+                        $('.digital-io-value').html('1');
+                    }
+                }
+            }
+        });
+    };
+
+    websocket.onerror = function (ev) {
+        console.log('WebSocket error occured: ' + ev.data);
+    };
+
+    websocket.onclose = function (ev) {
+        console.log('WebSocket connection closed');
+    };
+}
