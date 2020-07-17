@@ -1,6 +1,8 @@
-function ready() {
+ready = new Promise(function(resolve, reject) {
     console.log("CARRI ready");
     var driverSocket = "";
+
+    //const robotio = io("http://localhost:10000")
 
     createCallback = function(sockid, connection) {
         if (sockid === driverSocket) {
@@ -9,14 +11,20 @@ function ready() {
                 ev.channel.onopen = function() {
                     console.log('Data channel is open and ready to be used.');
                 };
-                ev.channel.onmessage = ev_ => {console.log(ev_.data);};
+                ev.channel.onmessage = ev_ => {
+                    //robotio.emit("keys", ev_.data);
+                    console.log(ev_.data);
+                };
             }
         }
     }
-
-    socket.on('connect', () => {
-        socket.emit("set-type", {type: "carri"});
-    });
+    
+    $.get("http://localhost:8000/secret").done(function(data) {
+        socket.on('connect', () => {
+            socket.emit("set-type", {type: "carri", secret: data});
+        });
+        resolve();
+    }).fail(() => { reject(); });
 
     socket.on("user-connect", (data) => {
         initiateConnection(data, true);
@@ -26,4 +34,4 @@ function ready() {
         driverSocket = data;
         // Driver will send offer to us, we only have to answer
     });
-}
+});

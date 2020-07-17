@@ -134,7 +134,8 @@ getMedia.then(function (stream) {
 
     // Run the ready callback to let individual scripts do their tasks
     console.log("Calling ready");
-    ready();
-    // Connect to sockets only after everything else is completed, because we need to catch the connection event
-    socket.connect();
+    ready.then(() => {
+        // Connect to sockets only after everything else is completed, because we need to catch the connection event
+        socket.connect();
+    });
 });

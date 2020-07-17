@@ -2,6 +2,8 @@ import express, { Application } from "express";
 import socketIO, { Server as SocketIOServer } from "socket.io";
 import { createServer, Server as HTTPServer } from "http";
 import * as path from 'path';
+const https = require('https');
+var fs = require('fs')
 
 export class Server {
     private httpServer: HTTPServer;
@@ -25,7 +27,10 @@ export class Server {
 
     private initialize(): void {
         this.app = express();
-        this.httpServer = createServer(this.app);
+        this.httpServer = https.createServer({
+            key: fs.readFileSync('/etc/letsencrypt/live/carri.julias.ch/privkey.pem'),
+            cert: fs.readFileSync('/etc/letsencrypt/live/carri.julias.ch/fullchain.pem')
+        }, this.app);
         this.io = socketIO(this.httpServer);
     }
 
@@ -39,20 +44,30 @@ export class Server {
         });*/
     }
 
+    private checkRobotSecret(secret): boolean {
+        return fs.readFileSync('../robot/robot_secret', 'utf8') === secret;
+    }
+
     private handleSocketConnection(): void {
         // Set up a callback for each time a socket is called
         this.io.on("connection", socket => {
             // The set-type message identifies who the connected socket is
             // This is used for verification and sending to other clients so they can interact with those
             socket.on("set-type", (data: any) => {
-                console.log("Socket " + socket.id + " says it is " + data.type)
+                console.log("Socket " + socket.id + " says it is " + data.type + " secret: " + data.secret);
                 // todo verify key/token
                 if (data.type === "carri") {
-                    this.carriSocket = socket.id;
-                    // Tell CARRI that we have a driver
-                    if (this.driverSocket) {
-                        socket.emit("driver-connect", this.driverSocket);
-                        socket.to(this.driverSocket).emit("carri-connect", this.carriSocket);
+                    if (this.checkRobotSecret(data.secret)) {
+                        console.log("Key OK");
+                        this.carriSocket = socket.id;
+                        // Tell CARRI that we have a driver
+                        if (this.driverSocket) {
+                            socket.emit("driver-connect", this.driverSocket);
+                            socket.to(this.driverSocket).emit("carri-connect", this.carriSocket);
+                        }
+                    }
+                    else {
+                        socket.disconnect();
                     }
                 }
                 else if (data.type === "driver") {
@@ -81,6 +96,7 @@ export class Server {
                         this.userSockets.push(socket.id);
                     }
                     // Can't connect because we don't have a driver
+                    socket.disconnect();
                 }
             });
 

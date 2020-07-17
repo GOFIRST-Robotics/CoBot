@@ -1,0 +1,23 @@
+#!/usr/bin/python3
+
+from flask import Flask, make_response
+from flask_socketio import SocketIO
+from multiprocessing.connection import Client
+
+app = Flask(__name__)
+socketio = SocketIO(app)
+address = ('localhost', 6000)
+
+@app.route('/secret')
+def index():
+    resp = make_response("".join(open("robot_secret")))
+    resp.headers['Access-Control-Allow-Origin'] = 'http://localhost:5000'
+    return resp
+
+@socketio.on('keys')
+def handle_keys(msg):
+    with Client(address, authkey=b'cobot') as conn:
+        conn.send(msg)
+
+if __name__ == '__main__':
+    socketio.run(app, port=8000)

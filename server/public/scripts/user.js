@@ -1,5 +1,5 @@
 
-function ready() {
+ready = new Promise(function(resolve, reject) {
     console.log("User ready");
   
     socket.on('connect', () => {
@@ -10,5 +10,5 @@ function ready() {
         initiateConnection(data, true);
         console.log("A user connected");
     });
-    
-}
+    resolve();
+});
