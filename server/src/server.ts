@@ -10,6 +10,7 @@ export class Server {
 
     private readonly DEFAULT_PORT = 5000;
 
+    // Store sockets
     private userSockets: string[] = [];
     private carriSocket: string;
     private driverSocket: string;
@@ -39,7 +40,10 @@ export class Server {
     }
 
     private handleSocketConnection(): void {
+        // Set up a callback for each time a socket is called
         this.io.on("connection", socket => {
+            // The set-type message identifies who the connected socket is
+            // This is used for verification and sending to other clients so they can interact with those
             socket.on("set-type", (data: any) => {
                 console.log("Socket " + socket.id + " says it is " + data.type)
                 // todo verify key/token
@@ -47,18 +51,20 @@ export class Server {
                     this.carriSocket = socket.id;
                     // Tell CARRI that we have a driver
                     if (this.driverSocket) {
-                        socket.to(this.carriSocket).emit("driver-connect", this.driverSocket);
+                        socket.emit("driver-connect", this.driverSocket);
                         socket.to(this.driverSocket).emit("carri-connect", this.carriSocket);
                     }
                 }
                 else if (data.type === "driver") {
                     this.driverSocket = socket.id;
                     // Reset "room"
+                    // Whenever the driver connects, get rid of all the user sockets because this is when a new care session starts
+                    // Probably will rework this to be more robust at some point
                     this.userSockets = [];
                     // Tell CARRI that the driver connected
                     if (this.carriSocket) {
                         socket.to(this.carriSocket).emit("driver-connect", socket.id);
-                        socket.to(this.driverSocket).emit("carri-connect", this.carriSocket);
+                        socket.emit("carri-connect", this.carriSocket);
                     }
                 }
                 else if (data.type === "user") {
@@ -78,6 +84,7 @@ export class Server {
                 }
             });
 
+            // These events basically forward data to other clients
             socket.on("offer", (data: any) => {
                 socket.to(data.to).emit('offer', {from: socket.id, offer: data.offer});
             });
@@ -89,7 +96,8 @@ export class Server {
             socket.on("ice", (data: any) => {
                 socket.to(data.to).emit('ice', {from: socket.id, candidate: data.candidate});
             });
-
+            
+            // When a socket disconnects, handle it gracefully
             socket.on('disconnect', () => {
                 if (this.carriSocket == socket.id) {
                     this.carriSocket = null;

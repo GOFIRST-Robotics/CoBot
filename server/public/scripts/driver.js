@@ -15,6 +15,11 @@ function ready() {
       carriSocket = data;
       console.log("Got CARRI on " + carriSocket);
       // Send offer to CARRI
-      initiateConnection(carriSocket, true);
+      let connection = initiateConnection(carriSocket, true);
+      let dataChannel = connection.peerconnection.createDataChannel("control");
+
+      dataChannel.addEventListener("open", (event) => {
+        setInterval(() => {dataChannel.send(""+Math.random());}, 1000);
+      });
   });
   }
