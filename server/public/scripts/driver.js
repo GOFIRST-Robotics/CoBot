@@ -1,23 +1,20 @@
-var carriSocket = "";
+function ready() {
+  console.log("Driver ready");
+  var carriSocket = "";
 
-socket.on('connect', () => {
-    socket.emit("set-type", {type: "driver"});
-});
+  socket.on('connect', () => {
+      socket.emit("set-type", {type: "driver"});
+  });
 
-socket.on("user-connect", (data) => {
-    // Send offer to user
-});
+  socket.on("user-connect", (data) => {
+      initiateConnection(data, true);
+      console.log("A user connected");
+  });
 
-socket.on("carri-connect", (data) => {
-    carriSocket = data;
-    // Send offer to CARRI
-});
-
-socket.on("offer", (data) => {
-    // Driver shouldn't get any offers
-});
-
-socket.on("answer", (data) => {
-    // Use answer to set up stream
-    // Answers can be from CARRI or users
-});
+  socket.on("carri-connect", (data) => {
+      carriSocket = data;
+      console.log("Got CARRI on " + carriSocket);
+      // Send offer to CARRI
+      initiateConnection(carriSocket, true);
+  });
+  }

@@ -1,0 +1,3 @@
+__pycache__/*
+server/node_modules/*
+robot/__pycache__/*

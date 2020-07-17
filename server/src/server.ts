@@ -48,6 +48,7 @@ export class Server {
                     // Tell CARRI that we have a driver
                     if (this.driverSocket) {
                         socket.to(this.carriSocket).emit("driver-connect", this.driverSocket);
+                        socket.to(this.driverSocket).emit("carri-connect", this.carriSocket);
                     }
                 }
                 else if (data.type === "driver") {
@@ -57,6 +58,7 @@ export class Server {
                     // Tell CARRI that the driver connected
                     if (this.carriSocket) {
                         socket.to(this.carriSocket).emit("driver-connect", socket.id);
+                        socket.to(this.driverSocket).emit("carri-connect", this.carriSocket);
                     }
                 }
                 else if (data.type === "user") {
@@ -84,8 +86,20 @@ export class Server {
                 socket.to(data.to).emit('answer', {from: socket.id, answer: data.answer});
             });
 
+            socket.on("ice", (data: any) => {
+                socket.to(data.to).emit('ice', {from: socket.id, candidate: data.candidate});
+            });
+
             socket.on('disconnect', () => {
-                // handle dc
+                if (this.carriSocket == socket.id) {
+                    this.carriSocket = null;
+                }
+                if (this.driverSocket == socket.id) {
+                    this.driverSocket = null;
+                }
+                if (socket.id in this.userSockets) {
+                    delete this.userSockets[this.userSockets.indexOf(socket.id)];
+                }
             });
         });
     }
