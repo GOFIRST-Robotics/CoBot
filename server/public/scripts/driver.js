@@ -3,7 +3,7 @@ ready = new Promise(function(resolve, reject) {
   var carriSocket = "";
 
   socket.on('connect', () => {
-      socket.emit("set-type", {type: "driver"});
+      socket.emit("authentication", {type: "driver"});
   });
 
   socket.on("user-connect", (data) => {

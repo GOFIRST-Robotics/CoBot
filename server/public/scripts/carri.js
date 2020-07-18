@@ -21,7 +21,7 @@ ready = new Promise(function(resolve, reject) {
     
     $.get("http://localhost:8000/secret").done(function(data) {
         socket.on('connect', () => {
-            socket.emit("set-type", {type: "carri", secret: data});
+            socket.emit("authenticate", {type: "carri", secret: data});
         });
         resolve();
     }).fail(() => { reject(); });
