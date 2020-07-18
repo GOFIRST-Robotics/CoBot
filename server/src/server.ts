@@ -4,16 +4,18 @@ import { createServer, Server as HTTPServer } from "http";
 import * as path from 'path';
 const https = require('https');
 var fs = require('fs')
+const crypto = require('crypto');
 
 export class Server {
     private httpServer: HTTPServer;
     private app: Application;
     private io: SocketIOServer;
 
-    private readonly DEFAULT_PORT = 5000;
+    private readonly DEFAULT_PORT = 443;
 
     // Store sockets
     private userSockets: string[] = [];
+    private tokens: string[] = [];
     private carriSocket: string;
     private driverSocket: string;
 
@@ -30,12 +32,16 @@ export class Server {
         this.httpServer = https.createServer({
             key: fs.readFileSync('/etc/letsencrypt/live/carri.julias.ch/privkey.pem'),
             cert: fs.readFileSync('/etc/letsencrypt/live/carri.julias.ch/fullchain.pem')
-        }, this.app);
+        }, this.app);        
         this.io = socketIO(this.httpServer);
     }
 
     private configureApp(): void {
         this.app.use(express.static(path.join(__dirname, "../public")));
+    }
+
+    private genUserToken(): string {
+        return crypto.randomBytes(64).toString('hex');
     }
 
     private handleRoutes(): void {
@@ -81,6 +87,12 @@ export class Server {
                         socket.to(this.carriSocket).emit("driver-connect", socket.id);
                         socket.emit("carri-connect", this.carriSocket);
                     }
+
+                    socket.on("invite", (data: any) => {
+                        // Generate a new token
+                        let token = this.genUserToken();
+
+                    });
                 }
                 else if (data.type === "user") {
                     if (this.driverSocket) {
@@ -95,8 +107,10 @@ export class Server {
 
                         this.userSockets.push(socket.id);
                     }
-                    // Can't connect because we don't have a driver
-                    socket.disconnect();
+                    else {
+                        // Can't connect because we don't have a driver
+                        socket.disconnect();
+                    }
                 }
             });
 
@@ -129,8 +143,13 @@ export class Server {
     }
 
     public listen(callback: (port: number) => void): void {
-        this.httpServer.listen(this.DEFAULT_PORT, () =>
-            callback(this.DEFAULT_PORT)
-        );
+        this.httpServer.listen(this.DEFAULT_PORT);
+
+        // HTTP -> HTTPS redirect
+        var http = require('http');
+        http.createServer(function (req, res) {
+            res.writeHead(301, { "Location": "https://" + req.headers['host'] + req.url });
+            res.end();
+        }).listen(80);
     }
 }

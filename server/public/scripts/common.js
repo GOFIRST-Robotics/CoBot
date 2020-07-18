@@ -1,8 +1,8 @@
 const { RTCPeerConnection, RTCSessionDescription } = window;
 
-const configuration = { iceServers: [{ urls: 'stun:18.191.246.40' }] };
+const configuration = { iceServers: [{ urls: 'stun:carri.julias.ch' }] };
 
-const socket = io("http://localhost:5000", { "autoConnect": false });
+const socket = io("https://carri.julias.ch", { "autoConnect": false });
 
 // Todo add audio
 var getMedia = navigator.mediaDevices.getUserMedia({ audio: false, video: true });
