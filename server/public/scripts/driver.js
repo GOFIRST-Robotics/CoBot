@@ -1,9 +1,11 @@
+var id_token = null;
+
 ready = new Promise(function(resolve, reject) {
   console.log("Driver ready");
   var carriSocket = "";
 
   socket.on('connect', () => {
-      socket.emit("authentication", {type: "driver"});
+      socket.emit("authentication", {type: "driver", secret: id_token});
   });
 
   socket.on("user-connect", (data) => {
@@ -20,6 +22,7 @@ ready = new Promise(function(resolve, reject) {
 
       dataChannel.addEventListener("open", (event) => { initControls(dataChannel); });
   });
+  // Do the setup and then never complete the promise so the socket isn't initiated
   resolve();
 });
 
@@ -53,3 +56,15 @@ function initControls(dataChannel) {
       }));
   }, 100);
 }
+
+function onSignIn(googleUser) {
+    var profile = googleUser.getBasicProfile();
+    console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+    console.log('Name: ' + profile.getName());
+    console.log('Image URL: ' + profile.getImageUrl());
+    console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
+
+    id_token = googleUser.getAuthResponse().id_token;
+    //socket.connect();
+  }
+  

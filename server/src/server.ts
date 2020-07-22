@@ -5,6 +5,11 @@ import * as path from 'path';
 const https = require('https');
 var fs = require('fs')
 const crypto = require('crypto');
+var session = require('express-session');
+var dotenv = require('dotenv');
+dotenv.config();
+var passport = require('passport');
+var Auth0Strategy = require('passport-auth0');
 
 export class Server {
     private httpServer: HTTPServer;
@@ -44,11 +49,12 @@ export class Server {
                     return callback(null, true); // todo
                 }
                 else {
-                    return callback(null, this.driverSocket && data.token in this.tokens);
+                    return callback(null, this.driverSocket);
                 }
             },
             postAuthenticate: (socket, data) => {
                 if (data.type === "carri") {
+                    console.log("CARRI passed auth");
                     this.carriSocket = socket.id;
                     // Tell CARRI that we have a driver
                     if (this.driverSocket) {
@@ -57,6 +63,7 @@ export class Server {
                     }
                 }
                 else if (data.type === "driver") {
+                    console.log("Driver passed auth. User " + data.secret);
                     this.driverSocket = socket.id;
                     // Reset "room"
                     // Whenever the driver connects, get rid of all the user sockets because this is when a new care session starts
@@ -105,7 +112,8 @@ export class Server {
     }
 
     private checkRobotSecret(secret): boolean {
-        return fs.readFileSync('../robot/robot_secret', 'utf8') === secret;
+        let correct_secret = fs.readFileSync('../robot/robot_secret', 'utf8');
+        return correct_secret === secret;
     }
 
     private handleSocketConnection(): void {

@@ -2,7 +2,7 @@ ready = new Promise(function(resolve, reject) {
     console.log("CARRI ready");
     var driverSocket = "";
 
-    //const robotio = io("http://localhost:10000")
+    const robotio = io("http://localhost:8000", { transport : ['websocket'] });
 
     createCallback = function(sockid, connection) {
         if (sockid === driverSocket) {
@@ -12,7 +12,7 @@ ready = new Promise(function(resolve, reject) {
                     console.log('Data channel is open and ready to be used.');
                 };
                 ev.channel.onmessage = ev_ => {
-                    //robotio.emit("keys", ev_.data);
+                    robotio.emit("keys", ev_.data);
                     console.log(ev_.data);
                 };
             }
@@ -21,7 +21,7 @@ ready = new Promise(function(resolve, reject) {
     
     $.get("http://localhost:8000/secret").done(function(data) {
         socket.on('connect', () => {
-            socket.emit("authenticate", {type: "carri", secret: data});
+            socket.emit("authentication", {type: "carri", secret: data});
         });
         resolve();
     }).fail(() => { reject(); });

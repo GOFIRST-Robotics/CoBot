@@ -2,3 +2,4 @@ __pycache__/*
 server/node_modules/*
 robot/__pycache__/*
 robot/robot_secret
+server/.env
