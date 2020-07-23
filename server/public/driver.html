@@ -24,7 +24,7 @@
      </header>
      <div class="content-container">
        <div class="active-users-panel">
-         
+         <button id="open-measure">Thermal Camera</button>
        </div>
        <div class="video-chat-container" id="videos">
          <div class="video-container">
@@ -32,6 +32,19 @@
            <video autoplay muted class="local-video" id="local-video"></video>
          </div>
        </div>
+     </div>
+   </div>
+   <div class="modal modal-hidden" id="measure-modal">
+     <div class="modal-container">
+      <header class="header">
+        <a id="close-measure" class="close-btn">&times;</a>
+        <h2 class="logo-text">Measurement</h2>
+      </header>
+      <div class="modal-content">
+        <img id="measure-img" alt="Fetching thermal video..." />
+        <br />
+        <span id="measure-value">0</span>&deg;F
+      </div>
      </div>
    </div>
    <script src="https://apis.google.com/js/platform.js" async defer></script>
