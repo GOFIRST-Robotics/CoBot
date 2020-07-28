@@ -62,47 +62,55 @@ function initControls(dataChannel) {
 }
 
 function openThermal(dataChannel) {
-    measureModal.classList.remove("modal-hidden");
-    dataChannel.send({type: "startThermal"});
+    measureModal.removeClass("modal-hidden");
 }
 
 function closeThermal(dataChannel) {
-    measureModal.classList.add("modal-hidden")
-    dataChannel.send({type: "endThermal"});
+    measureModal.addClass("modal-hidden");
 }
 
 function initThermalCam(dataChannel) {
-    measureModal = document.getElementById("measure-modal");
-    document.getElementById("open-measure").onclick = () => openThermal(dataChannel);
-    document.getElementById("close-measure").onclick = () => closeThermal(dataChannel);
+    measureModal = $("#measure-modal");
+    $("#open-measure").removeAttr("disabled");
+    $("#open-measure").click(() => openThermal(dataChannel));
+    $("#close-measure").click(() => closeThermal(dataChannel));
     
     let imgData = "";
+    let firstImg = true;
     dataChannel.onmessage = (ev) => {
-        let msg = ev.data;
+        let msg = JSON.parse(ev.data);
         if (msg.type === "img") {
-            if (msg.data === "\n") {
-                document.getElementById("measure-img").src = imgData;
+            if (msg.end) {
+                $("#measure-img").prop("src", imgData);
                 imgData = "";
+                if (firstImg) {
+                    firstImg = false;
+                    setMeasurePos(640/2, 480/2);
+                    $("#measure-value").removeClass("modal-hidden");
+                    $("#spot").removeClass("modal-hidden");
+                }
             }
             else {
                 imgData += msg.data;
             }
         }
         else if (msg.type === "temp") {
-            document.getElementById("measure-value").textContent = msg.data;
+            $("#measure-value").text(msg.data);
         }
     };
 
     function setMeasurePos(xx, yy) {
-        dataChannel.send({type: "moveSpot", x: xx, y: yy})
+        $("#spot").css("top", 480-(scaleToSensor(yy, 'y')+1)*8);
+        $("#spot").css("left", (scaleToSensor(xx, 'x')+1)*8);
+        dataChannel.send(JSON.stringify({type: "moveSpot", x: xx, y: yy}));
     }
 
     $("#measure-img").on("click", function (event) {
-        var x = (event.pageX - this.offsetLeft);
-        var y = (event.pageY - this.offsetTop);
+        var pos = $(this).offset();
+        var x = (event.pageX - pos.left);
+        var y = (event.pageY - pos.top);
         setMeasurePos(x, y);
     });
-    setMeasurePos(160, 80);
 }
 
 

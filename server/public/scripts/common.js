@@ -4,8 +4,11 @@ const configuration = { iceServers: [{ urls: 'stun:carri.julias.ch' }] };
 
 const socket = io("https://carri.julias.ch", { "autoConnect": false });
 
+const thermalWidth = 640;
+const thermalHeight = 480;
+
 // Todo add audio
-var getMedia = navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+var getMedia = navigator.mediaDevices.getUserMedia({ audio: true, video: true });
 var localMedia = null;
 var connections = {};
 
@@ -24,16 +27,14 @@ getMedia.then(function (stream) {
     // This function is called to initiate a connection to another client that has socket ID 'sockid'
     // The "initiate" parameter is whether this connection will initiate an offer.
     initiateConnection = function (sockid, initiate) {
-        var pc = new RTCPeerConnection(configuration);
+        let pc = new RTCPeerConnection(configuration);
 
         // Set up the remote video element
-        var element = document.createElement("video");
-        element.className = "remote-video";
-        element.setAttribute("autoplay", "true");
-        document.getElementById("videos").appendChild(element);
+        $("#videos").append("<video class='remote-video' autoplay data-" + sockid + "='true'></video>");
+        let element = $("video[data-" + sockid + "='true']");
 
         // create the connection object for future storage
-        var connection = { peerconnection: pc, inboundStream: null, initiator: initiate, videoElement: element };
+        let connection = { peerconnection: pc, inboundStream: null, initiator: initiate, videoElement: element, timeoutInterval: undefined };
         connections[sockid] = connection;
 
         // Add local media to the peer connection
@@ -46,11 +47,11 @@ getMedia.then(function (stream) {
         pc.ontrack = e => {
             // Taken from MDN, I'm not sure how it works. Adds tracks to the remote video element when they arrive from the PC
             if (e.streams && e.streams[0]) {
-                element.srcObject = e.streams[0];
+                element.prop("src", e.streams[0]);
             } else {
                 if (!connection.inboundStream) {
                     connection.inboundStream = new MediaStream();
-                    element.srcObject = connection.inboundStream;
+                    element.prop("srcObject", connection.inboundStream);
                 }
                 connection.inboundStream.addTrack(e.track);
             }
@@ -61,21 +62,31 @@ getMedia.then(function (stream) {
                 socket.emit("ice", { to: sockid, candidate: evt.candidate });
             }
         };
-        pc.onconnectionstatechange = function (event) {
-            switch (pc.connectionState) {
+        let closeConn = () => {
+            if (pc.iceConnectionState !== "connected") {
+                console.log("Socket " + sockid + " " + pc.iceConnectionState);
+                pc.close();
+                // Get rid of the remote video element and delete this connection
+                connections[sockid].videoElement.remove();
+                if (sockid in connections) {
+                    delete connections[sockid];
+                }
+            }
+        };
+        pc.oniceconnectionstatechange = function (event) {
+            console.log(pc.iceConnectionState)
+            switch (pc.iceConnectionState) {
                 case "connected":
                     // connectCallback could be defined by the different scripts
                     if (connectCallback) {
                         connectCallback(sockid, connection);
                     }
                     break;
-                case "disconnected":
                 case "failed":
                 case "closed":
-                    // Get rid of the remote video element and delete this connection
-                    // TODO this doesn't always work
-                    element.parentNode.removeChild(element);
-                    delete connections[sockid];
+                    closeConn();
+                    break;
+                default:
                     break;
             }
         }
@@ -139,3 +150,25 @@ getMedia.then(function (stream) {
         socket.connect();
     });
 });
+
+var globIrImgWidth = 80;
+var globIrImgHeight = 60;
+var globScaling = 8;
+var globScalingHeight = 8;
+var spotOffset = 15;    // size/2
+var gridAlignment = globScaling / 2;
+
+var globSpotGridOffsetX = 0;
+var globSpotGridOffsetY = 116;
+var globImgHeight = 480;
+var globImgWidth = 640;
+var hflip = false;
+var vflip = true;
+
+function scaleToSensor(val, axis) {
+    var ret = val / globScaling;
+    if (axis === 'y') {
+        ret = (globImgHeight - parseFloat(val)) / globScalingHeight - 1;
+    }
+    return Math.round(ret);
+}

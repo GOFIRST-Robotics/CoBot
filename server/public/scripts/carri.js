@@ -1,5 +1,5 @@
 let roboturl = "http://localhost:8000";
-let flirip = "92.168.0.205";
+let flirip = "192.168.0.205";
 let flirurl = "http://" + flirip;
 let currentTemp = 0;
 
@@ -7,35 +7,57 @@ ready = new Promise(function(resolve, reject) {
     console.log("CARRI ready");
     var driverSocket = "";
 
-    const robotio = io(roboturl, { transport : ['websocket'] });
+    //const robotio = io(roboturl, { transport : ['websocket'] });
+
+    let thermalIntervalId = undefined;
+    let thermalImg = new Image(640, 480);
+    let spotId = "1";
+    let thermalChannel = undefined;
+
+    console.log("Starting thermal camera");
+    keepAlive(30000);
+    initFLIRSocket();
+    $.get(flirurl + "/?user:user").done(() => {
+        subscribeToSpot(spotId);
+        
+        let blocked = false;
+        thermalImg.onload = () => {
+            if (thermalChannel) {
+                sendImage(thermalImg, thermalChannel, () => blocked = false);
+            }
+            else {
+                blocked = false;
+            }
+        };
+        thermalImg.onerror = () => blocked = false;
+        thermalIntervalId = setInterval(() => {
+            if (!blocked) {
+                thermalImg.src = flirurl + "/snapshot.jpg?user:user&bust=" + Math.random();
+                blocked = true;
+            }
+        }, 100);
+        thermalImg.crossOrigin = "anonymous";
+
+        setInterval(() => {
+            if (thermalChannel) {
+                thermalChannel.send(JSON.stringify({type: "temp", data: currentTemp}));
+            }
+        }, 100);
+    });
 
     createCallback = function(sockid, connection) {
         if (sockid === driverSocket) {
             connection.peerconnection.ondatachannel = (ev) => {
                 if (ev.channel.label === "control") {
                     ev.channel.onmessage = ev_ => {
-                        robotio.emit("keys", ev_.data);
-                        console.log(ev_.data);
+                        //robotio.emit("keys", ev_.data);
                     };
                 }
                 else if (ev.channel.label === "thermal") {
-                    let spotId = "measure";
-                    subscribeToSpot(spotId);
-                    let intervalID = 0;
-                    let dt = 1000 / 30;
+                    thermalChannel = ev.channel;
                     ev.channel.onmessage = ev_ => {
-                        var msg = ev_.data;
-                        if (msg.type === "startThermal") {
-                            intervalID = setInterval(function() {
-                                $.get(flirurl + "/snapshot.jpg" + Math.random()).done(function(data) {
-                                    sendImage(data, ev.channel);
-                                });
-                            }, dt);
-                        }
-                        else if (msg.type === "endThermal") {
-                            clearInterval(intervalID);
-                        }
-                        else if (msg.type === "moveSpot") {
+                        var msg = JSON.parse(ev_.data);
+                        if (msg.type === "moveSpot") {
                             let x = msg.x;
                             let y = msg.y;
                             let sensorX = scaleToSensor(x, 'x');
@@ -44,8 +66,9 @@ ready = new Promise(function(resolve, reject) {
                             setResource('.image.sysimg.measureFuncs.spot.' + spotId + '.y ', sensorY);
                         }
                     };
-
-                    
+                    ev.channel.onclose = () => {
+                        thermalChannel = undefined;
+                    }
                 }
             }
         }
@@ -69,13 +92,13 @@ ready = new Promise(function(resolve, reject) {
 });
 
 var canvas = document.createElement('canvas');
-canvas.width = 320;
-canvas.height = 160;
+canvas.width = thermalWidth;
+canvas.height = thermalHeight;
 var ctx = canvas.getContext('2d');
 
-function sendImage(image, channel) {
+function sendImage(image, channel, callback) {
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.width);
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
     var delay = 10;
     var charSlice = 10000;
@@ -84,17 +107,20 @@ function sendImage(image, channel) {
     var data = canvas.toDataURL("image/jpeg");
     var dataSent = 0;
     var intervalID = 0;
-
     intervalID = setInterval(function() {
-        var slideEndIndex = dataSent + charSlice;
-        if (slideEndIndex > data.length) {
-            slideEndIndex = data.length;
-        }
-        sendChannel.send({type: "img", "data": data.slice(dataSent, slideEndIndex)});
-        dataSent = slideEndIndex;
         if (dataSent + 1 >= data.length) {
-            channel.send({type: "img", data: terminator});
+            channel.send(JSON.stringify({type: "img", end: true}));
             clearInterval(intervalID);
+            if (callback) {callback();}
+        }
+        else {
+            var slideEndIndex = dataSent + charSlice;
+            if (slideEndIndex > data.length) {
+                slideEndIndex = data.length;
+            }
+            let dataSend = data.slice(dataSent, slideEndIndex);
+            channel.send(JSON.stringify({type: "img", "data": dataSend, end: false}));
+            dataSent = slideEndIndex;
         }
     }, delay);
 }
@@ -192,35 +218,15 @@ function kelvinToFahrenheit(t, diff) {
 
 function getWebSocketUri() {
     var wsUri;
-    if (window.location.protocol === 'https:') {
-        wsUri = 'wss://';
-    } else {
-        wsUri = 'ws://';
-    }
+    wsUri = 'ws://';
     wsUri += flirip;
     return wsUri;
 }
 
-function scaleToSensor(val, axis, size) {
-    var ret = val / globScaling;
-    if (axis === 'x') {
-        if (hflip) {
-            if (size != undefined) {
-                ret = (globImgWidth - parseFloat(val)) / globScaling - parseFloat(size);
-            } else {
-                ret = (globImgWidth - parseFloat(val)) / globScaling - 1;
-            }
-        }
-    } else if (axis === 'y') {
-        if (vflip) {
-            if (size != undefined) {
-                ret = (globImgHeight - parseFloat(val)) / globScalingHeight - parseFloat(size);
-            } else {
-                ret = (globImgHeight - parseFloat(val)) / globScalingHeight - 1;
-            }
-        } else {
-            ret = val / globScalingHeight;
-        }
-    }
-    return Math.round(ret);
+function keepAlive(rate) {
+    setResource('.rtp.keepalive', 'true', function () {
+        setTimeout(function () {
+            keepAlive(rate);
+        }, rate);
+    });
 }

@@ -130,6 +130,7 @@ body {
 
 .modal-content {
   padding: 1em;
+  position: relative;
 }
 
 .close-btn {
@@ -147,4 +148,26 @@ body {
 #measure-img {
   margin: 0 auto;
   
+}
+
+.img-vert {
+  -moz-transform: scaleY(-1);
+  -o-transform: scaleY(-1);
+  -webkit-transform: scaleY(-1);
+  transform: scaleY(-1);
+  filter: FlipV;
+  -ms-filter: "FlipV";
+}
+
+#measure-img-container {
+  width: 640px;
+  height: 480px;
+}
+
+#spot {
+  position: absolute;
+  display: block;
+  z-index: 1;
+  left: 0px;
+  top: 0px;
 }

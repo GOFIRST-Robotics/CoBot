@@ -11,7 +11,7 @@
      rel="stylesheet"
    />
    <link rel="stylesheet" href="./styles.css" />
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
  </head>
  <body>
    <div class="container">
@@ -24,7 +24,7 @@
      </header>
      <div class="content-container">
        <div class="active-users-panel">
-         <button id="open-measure">Thermal Camera</button>
+         <button id="open-measure" disabled>Thermal Camera</button>
        </div>
        <div class="video-chat-container" id="videos">
          <div class="video-container">
@@ -41,14 +41,17 @@
         <h2 class="logo-text">Measurement</h2>
       </header>
       <div class="modal-content">
-        <img id="measure-img" alt="Fetching thermal video..." />
+        <div id="measure-img-container">
+          <img src="spot.png" id="spot" class="modal-hidden" />
+          <img id="measure-img" alt="Fetching thermal video..." class="img-vert" />
+        </div>
         <br />
-        <span id="measure-value">0</span>&deg;F
+        <span id="measure-value" class="modal-hidden">0</span>&deg;F
       </div>
      </div>
    </div>
-   <script src="https://apis.google.com/js/platform.js" async defer></script>
-   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+   <script crossorigin="anonymous" src="https://apis.google.com/js/platform.js" async defer></script>
+   <script crossorigin="anonymous" src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
    <script src="./scripts/common.js"></script>
    <script src="./scripts/driver.js"></script>
  </body>

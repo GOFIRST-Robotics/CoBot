@@ -10,7 +10,7 @@
      rel="stylesheet"
    />
    <link rel="stylesheet" href="./styles.css" />
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
  </head>
  <body>
    <div class="container">
@@ -22,6 +22,7 @@
        </div>
      </header>
      <div class="content-container">
+      <iframe crossorigin="anonymous" width="0" height="0" src="http://192.168.0.205/?user:user"></iframe>
        <div class="video-chat-container" id="videos">
          <div class="video-container">
            <video autoplay muted class="local-video" id="local-video"></video>
@@ -29,8 +30,8 @@
        </div>
      </div>
    </div>
-   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-   <script src="./scripts/common.js"></script>
+   <script crossorigin="anonymous" src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+   <script crossorigin="anonymous" src="./scripts/common.js"></script>
    <script src="./scripts/carri.js"></script>
  </body>
 </html>
