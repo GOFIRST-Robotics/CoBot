@@ -8,7 +8,7 @@ const thermalWidth = 640;
 const thermalHeight = 480;
 
 // Todo add audio
-var getMedia = navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+var getMedia = navigator.mediaDevices.getUserMedia({ audio: false, video: true });
 var localMedia = null;
 var connections = {};
 
@@ -63,15 +63,14 @@ getMedia.then(function (stream) {
             }
         };
         let closeConn = () => {
-            if (pc.iceConnectionState !== "connected") {
-                console.log("Socket " + sockid + " " + pc.iceConnectionState);
-                pc.close();
-                // Get rid of the remote video element and delete this connection
-                connections[sockid].videoElement.remove();
-                if (sockid in connections) {
-                    delete connections[sockid];
-                }
+            console.log("Socket " + sockid + " " + pc.iceConnectionState);
+            // pc.close();
+            // Get rid of the remote video element and delete this connection
+            connections[sockid].videoElement.remove();
+            if (sockid in connections) {
+                delete connections[sockid];
             }
+            
         };
         pc.oniceconnectionstatechange = function (event) {
             console.log(pc.iceConnectionState)
@@ -82,6 +81,17 @@ getMedia.then(function (stream) {
                         connectCallback(sockid, connection);
                     }
                     break;
+                case "failed":
+                case "closed":
+                    closeConn();
+                    break;
+                default:
+                    break;
+            }
+        }
+        pc.onconnectionstatechange = function (event) {
+            console.log(pc.connectionState)
+            switch (pc.connectionState) {
                 case "failed":
                 case "closed":
                     closeConn();

@@ -1,13 +1,13 @@
-let roboturl = "http://localhost:8000";
-let flirip = "192.168.0.205";
-let flirurl = "http://" + flirip;
+let roboturl = "https://robot.carri.local";
+let flirip = "thermal.carri.local";
+let flirurl = "https://" + flirip;
 let currentTemp = 0;
 
 ready = new Promise(function(resolve, reject) {
     console.log("CARRI ready");
     var driverSocket = "";
 
-    //const robotio = io(roboturl, { transport : ['websocket'] });
+    const robotio = io(roboturl, { transport : ['websocket'] });
 
     let thermalIntervalId = undefined;
     let thermalImg = new Image(640, 480);
@@ -40,20 +40,25 @@ ready = new Promise(function(resolve, reject) {
 
         setInterval(() => {
             if (thermalChannel) {
-                thermalChannel.send(JSON.stringify({type: "temp", data: currentTemp}));
+                if (thermalChannel.readyState === "open") {
+                    thermalChannel.send(JSON.stringify({type: "temp", data: currentTemp}));
+                }
             }
         }, 100);
     });
 
     createCallback = function(sockid, connection) {
+        console.log("CreateCallback");
         if (sockid === driverSocket) {
+            console.log("IS driver socket")
             connection.peerconnection.ondatachannel = (ev) => {
                 if (ev.channel.label === "control") {
                     ev.channel.onmessage = ev_ => {
-                        //robotio.emit("keys", ev_.data);
+                        robotio.emit("keys", ev_.data);
                     };
                 }
                 else if (ev.channel.label === "thermal") {
+                    console.log("Got thermal channel");
                     thermalChannel = ev.channel;
                     ev.channel.onmessage = ev_ => {
                         var msg = JSON.parse(ev_.data);
@@ -109,7 +114,9 @@ function sendImage(image, channel, callback) {
     var intervalID = 0;
     intervalID = setInterval(function() {
         if (dataSent + 1 >= data.length) {
-            channel.send(JSON.stringify({type: "img", end: true}));
+            if (channel.readyState === "open") {
+                channel.send(JSON.stringify({type: "img", end: true}));
+            }
             clearInterval(intervalID);
             if (callback) {callback();}
         }
@@ -119,7 +126,9 @@ function sendImage(image, channel, callback) {
                 slideEndIndex = data.length;
             }
             let dataSend = data.slice(dataSent, slideEndIndex);
-            channel.send(JSON.stringify({type: "img", "data": dataSend, end: false}));
+            if (channel.readyState === "open") {
+                channel.send(JSON.stringify({type: "img", "data": dataSend, end: false}));
+            }
             dataSent = slideEndIndex;
         }
     }, delay);
@@ -218,8 +227,8 @@ function kelvinToFahrenheit(t, diff) {
 
 function getWebSocketUri() {
     var wsUri;
-    wsUri = 'ws://';
-    wsUri += flirip;
+    wsUri = 'wss://';
+    wsUri += flirip + "/ws";
     return wsUri;
 }
 
