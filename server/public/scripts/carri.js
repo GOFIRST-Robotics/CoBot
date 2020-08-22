@@ -14,38 +14,39 @@ ready = new Promise(function(resolve, reject) {
     let spotId = "1";
     let thermalChannel = undefined;
 
-    console.log("Starting thermal camera");
-    keepAlive(30000);
-    initFLIRSocket();
-    $.get(flirurl + "/?user:user").done(() => {
-        subscribeToSpot(spotId);
-        
-        let blocked = false;
-        thermalImg.onload = () => {
-            if (thermalChannel) {
-                sendImage(thermalImg, thermalChannel, () => blocked = false);
-            }
-            else {
-                blocked = false;
-            }
-        };
-        thermalImg.onerror = () => blocked = false;
-        thermalIntervalId = setInterval(() => {
-            if (!blocked) {
-                thermalImg.src = flirurl + "/snapshot.jpg?user:user&bust=" + Math.random();
-                blocked = true;
-            }
-        }, 100);
-        thermalImg.crossOrigin = "anonymous";
-
-        setInterval(() => {
-            if (thermalChannel) {
-                if (thermalChannel.readyState === "open") {
-                    thermalChannel.send(JSON.stringify({type: "temp", data: currentTemp}));
+    setTimeout(function() {
+        console.log("Starting thermal camera");
+        keepAlive(30000);
+        initFLIRSocket();
+        $.get(flirurl + "/?user:user").done(() => {
+            
+            let blocked = false;
+            thermalImg.onload = () => {
+                if (thermalChannel) {
+                    sendImage(thermalImg, thermalChannel, () => blocked = false);
                 }
-            }
-        }, 100);
-    });
+                else {
+                    blocked = false;
+                }
+            };
+            thermalImg.onerror = () => blocked = false;
+            thermalIntervalId = setInterval(() => {
+                if (!blocked) {
+                    thermalImg.src = flirurl + "/snapshot.jpg?user:user&bust=" + Math.random();
+                    blocked = true;
+                }
+            }, 100);
+            thermalImg.crossOrigin = "anonymous";
+
+            setInterval(() => {
+                if (thermalChannel) {
+                    if (thermalChannel.readyState === "open") {
+                        thermalChannel.send(JSON.stringify({type: "temp", data: currentTemp}));
+                    }
+                }
+            }, 100);
+        });
+    }, 500);
 
     createCallback = function(sockid, connection) {
         console.log("CreateCallback");
@@ -54,7 +55,7 @@ ready = new Promise(function(resolve, reject) {
             connection.peerconnection.ondatachannel = (ev) => {
                 if (ev.channel.label === "control") {
                     ev.channel.onmessage = ev_ => {
-                        robotio.emit("keys", ev_.data);
+                        robotio.emit("control", ev_.data);
                     };
                 }
                 else if (ev.channel.label === "thermal") {
@@ -185,6 +186,7 @@ function initFLIRSocket() {
     websocket = new WebSocket(wsUri);
     websocket.onopen = function (ev) { // connection is open
         console.log('Connected to WebSocket server');
+        subscribeToSpot(spotId);
     };
 
     websocket.onmessage = function (ev) {
@@ -198,6 +200,7 @@ function initFLIRSocket() {
                     switch (res[5]) {
                     case 'valueT':
                         let value = kelvinToFahrenheit(v, res[3] == 'diff');
+                        console.log(value);
                         currentTemp = value;
                         break;
                     }

@@ -30,6 +30,9 @@ ready = new Promise(function(resolve, reject) {
   resolve();
 });
 
+var abs = Math.abs;
+var max = Math.max;
+
 function initControls(dataChannel) {
   window.addEventListener('blur',()=>pressed = {},false);
   var KEYS = {left: 37, right: 39, forward: 38, reverse: 40};
@@ -51,12 +54,35 @@ function initControls(dataChannel) {
       return false;
   }
 
+  var panAngle = 90;
+  var tiltAngle = 90;
+
   setInterval(() => {
+      var gpData = getGamepadData();
+      var forward = -gpData.forward;
+      var turn = gpData.turn;
+      var angSpeed = abs(forward) * turn;
+      if (abs(forward) < 0.1) {
+        angSpeed = turn;
+      }
+      var rightSpeed = forward - angSpeed;
+      var leftSpeed = forward + angSpeed;
+      var maxMag = max(abs(rightSpeed), abs(leftSpeed));
+      if (maxMag > 1.0) {
+          rightSpeed /= maxMag;
+          leftSpeed /= maxMag;
+      }
+
+      var panDelta = gpData.lookPan * 3;
+      var tiltDelta = gpData.lookTilt * 3;
+      panAngle += panDelta;
+      tiltDelta += tiltDelta;
+
       dataChannel.send(JSON.stringify({
-          "left" : isPressed(KEYS.left),
-          "right" : isPressed(KEYS.right),
-          "forward" : isPressed(KEYS.forward),
-          "reverse" : isPressed(KEYS.reverse)
+          "left" : leftSpeed,
+          "right" : rightSpeed,
+          "pan" : panAngle,
+          "tilt" : tiltAngle
       }));
   }, 100);
 }
@@ -123,5 +149,46 @@ function onSignIn(googleUser) {
 
     id_token = googleUser.getAuthResponse().id_token;
     //socket.connect();
-  }
-  
+}
+
+function deadzone(x) {
+    if (abs(x) < 1e-2) {
+        return 0.0;
+    }
+    return x;
+}
+
+function symmetricSquare(x) {
+    return x * abs(x);
+}
+
+function oneSign(x) {
+    if (abs(x) < 1e-2) {
+        return 1;
+    }
+    return x / abs(x);
+}
+
+var gamepad = undefined;
+function getGamepadData() {
+    var data = {
+        "forward": 0.0,
+        "turn": 0.0,
+        "lookPan": 0.0,
+        "lookTilt": 0.0
+    };
+    if (gamepad !== undefined) {
+        data["forward"] = deadzone(gamepad.axes[1]);
+        data["turn"] = deadzone(gamepad.axes[0]);
+        data["lookPan"] = deadzone(gamepad.axes[3]);
+        data["lookTilt"] = deadzone(gamepad.axes[4]);
+    }
+    return data;
+}
+
+window.addEventListener("gamepadconnected", function(e) {
+    gamepad = e.gamepad;
+});
+window.addEventListener("gamepaddisconnected", function(e) {
+    gamepad = undefined;
+});

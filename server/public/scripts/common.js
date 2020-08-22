@@ -1,4 +1,4 @@
-const { RTCPeerConnection, RTCSessionDescription } = window;
+RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection;
 
 const configuration = { iceServers: [{ urls: 'stun:carri.julias.ch' }] };
 
@@ -8,7 +8,7 @@ const thermalWidth = 640;
 const thermalHeight = 480;
 
 // Todo add audio
-var getMedia = navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+var getMedia = navigator.mediaDevices.getUserMedia({ audio: true, video: {width: 640, height: 480} });
 var localMedia = null;
 var connections = {};
 

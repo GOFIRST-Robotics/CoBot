@@ -25,17 +25,9 @@ def handle_pwm(my_queue):
         except queue.Empty:
             write_motors(0,0)
         else:
-            speed = 0.75
-            if msg['forward']:
-                write_motors(speed, speed)
-            elif msg['reverse']:
-                write_motors(-speed, -speed)
-            elif msg['left']:
-                write_motors(-speed, speed)
-            elif msg['right']:
-                write_motors(speed, -speed)
-            else:
-                write_motors(0,0);
+            write_motors(msg['left'], msg['right'])
+            set_servo_us(2, get_motor_pulse((msg['pan'] - 90)/180))
+            set_servo_us(3, get_motor_pulse((msg['tilt'] - 90)/180))
         time.sleep(50/1000)
 
 def write_motors(left, right):
